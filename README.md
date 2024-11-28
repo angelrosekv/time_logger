@@ -18,11 +18,6 @@ This project demonstrates how to create a Go application with the following func
 
 2. **Start MySQL Server**:
    - Create a database using the following commands:
-     ```sql
-     CREATE DATABASE api_assignment;
-     USE api_assignment;
-     ```
-
 3. **Create the Table**:
    - Create a table named `time_log` to store API request timestamps:
      ```sql

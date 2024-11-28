@@ -81,7 +81,7 @@ The database stores each request’s timestamp for tracking or auditing
 ## Error Handling
 ![image](https://github.com/user-attachments/assets/2aecae65-e168-4a7b-ae78-07d31e24dcee)
 
-func logTimeToDatabase(timestamp time.Time) error {
+'''func logTimeToDatabase(timestamp time.Time) error {
 	query := "INSERT INTO time_log (timestamp) VALUES (?)"
 	_, err := db.Exec(query, timestamp)
 	if err != nil {
@@ -91,7 +91,7 @@ func logTimeToDatabase(timestamp time.Time) error {
 
 	log.Printf("Time logged to database: %s", timestamp.Format("2006-01-02 15:04:05"))
 	return nil
-}
+} '''
 Errors are logged using log.Printf for debugging and monitoring purposes.
 Errors encountered during API request processing are returned as HTTP 500 responses using http.Error.
 

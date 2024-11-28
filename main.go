@@ -11,16 +11,15 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-// Configurations
+// Database configuration
 const (
-	dsn             = "root:24680@tcp(127.0.0.1:3306)/time_logger" // DSN for database connection
-	torontoTimeZone = "America/Toronto"
+	dsn             = "root:24680@tcp(127.0.0.1:3306)/time_logger" // DSN
+	torontoTimeZone = "America/Toronto"                            // Time zone
 )
 
-// Database connection
 var db *sql.DB
 
-// Response structure for JSON output
+// Response structure
 type Response struct {
 	CurrentTime string `json:"current_time"`
 	Timezone    string `json:"timezone"`
@@ -29,23 +28,12 @@ type Response struct {
 func main() {
 	var err error
 
-	// Establish connection to MySQL database
-	db, err = sql.Open("mysql", dsn)
+	// Connect to the database
+	db, err = connectToDatabase()
 	if err != nil {
 		log.Fatalf("Error connecting to the database: %v", err)
 	}
-	defer func() {
-		if err := db.Close(); err != nil {
-			log.Printf("Error closing the database connection: %v", err)
-		}
-	}()
-
-	// Verify the database connection
-	if err = db.Ping(); err != nil {
-		log.Fatalf("Database connection failed: %v", err)
-	}
-
-	log.Println("Connected to MySQL database successfully!")
+	defer db.Close()
 
 	// Register the /current-time endpoint
 	http.HandleFunc("/current-time", currentTimeHandler)
@@ -57,30 +45,43 @@ func main() {
 	}
 }
 
+func connectToDatabase() (*sql.DB, error) {
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
+	}
+
+	if err := db.Ping(); err != nil {
+		return nil, fmt.Errorf("database connection failed: %w", err)
+	}
+
+	log.Println("Connected to MySQL database successfully!")
+	return db, nil
+}
+
 func currentTimeHandler(w http.ResponseWriter, r *http.Request) {
 	// Load Toronto timezone
 	location, err := time.LoadLocation(torontoTimeZone)
 	if err != nil {
-		http.Error(w, "Could not load timezone: "+err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to load timezone: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// Get the current time in Toronto
+	// Get current time in Toronto timezone
 	currentTime := time.Now().In(location)
 
-	// Log the current time into the database
+	// Insert the time into the database
 	if err := logTimeToDatabase(currentTime); err != nil {
 		http.Error(w, "Database error: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// Prepare the JSON response
+	// Send the current time as JSON response
 	response := Response{
 		CurrentTime: currentTime.Format("2006-01-02 15:04:05"),
 		Timezone:    torontoTimeZone,
 	}
 
-	// Send the JSON response
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, "Failed to encode response: "+err.Error(), http.StatusInternalServerError)
@@ -88,11 +89,13 @@ func currentTimeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func logTimeToDatabase(timestamp time.Time) error {
-	// Query to insert the current time into the time_log table
 	query := "INSERT INTO time_log (timestamp) VALUES (?)"
 	_, err := db.Exec(query, timestamp)
 	if err != nil {
+		log.Printf("Error logging time to database: %v", err)
 		return fmt.Errorf("failed to insert time into database: %w", err)
 	}
+
+	log.Printf("Time logged to database: %s", timestamp.Format("2006-01-02 15:04:05"))
 	return nil
 }

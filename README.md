@@ -56,7 +56,7 @@ This Go application provides an API endpoint `/current-time` that returns the cu
 
 The application uses Go’s `time` package to handle time zone conversion to Toronto's local time.
 
-### Implementation:
+## Implementation
 ```go
 const torontoTimeZone = "America/Toronto"
 
